@@ -38,4 +38,3 @@ jobs:
           app-name: app-sodisa-stats-portal
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PORTAL }}
           package: .next/standalone
-          startup-command: "node server.js"
