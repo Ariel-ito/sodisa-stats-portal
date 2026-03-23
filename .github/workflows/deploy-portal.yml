@@ -32,6 +32,19 @@ jobs:
           cp -r public .next/standalone/public
           cp -r .next/static .next/standalone/.next/static
 
+      # Oryx detects package.json and runs `npm start` → `next start`, but next
+      # is not bundled in standalone. Patch the start script so Oryx runs
+      # `node server.js` instead.
+      - name: Patch start script for Azure Oryx
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = '.next/standalone/package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.scripts = { ...pkg.scripts, start: 'node server.js' };
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2));
+          "
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
