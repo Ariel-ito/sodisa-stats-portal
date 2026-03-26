@@ -982,11 +982,9 @@ export default function StatsPage() {
       if (arr.length > 0) setSelectedPeriodo(arr[0]);
       setTiposInventario(filtrosData.tiposInventario ?? []);
 
-      const tabs: StatTab[] = Array.isArray(tabsData) && tabsData.length > 0
-        ? tabsData as StatTab[]
-        : ["resumen", "ventas", "articulos", "clientes", "inventario"];
+      const tabs: StatTab[] = Array.isArray(tabsData) ? tabsData as StatTab[] : ["resumen", "ventas", "articulos", "clientes", "inventario"];
       setAllowedTabs(tabs);
-      if (!tabs.includes("resumen")) setStatTab(tabs[0]);
+      if (tabs.length > 0 && !tabs.includes("resumen")) setStatTab(tabs[0]);
     }).catch(() => {
       setAllowedTabs(["resumen", "ventas", "articulos", "clientes", "inventario"]);
     });
@@ -1110,19 +1108,29 @@ export default function StatsPage() {
 
       {/* ── Stat Tabs ── */}
       <div className="bg-white border-b border-gray-200 px-6 flex gap-0 overflow-x-auto">
-        {ALL_TABS.filter(t => !allowedTabs || allowedTabs.includes(t.id)).map(t => (
-          <button
-            key={t.id}
-            onClick={() => setStatTab(t.id)}
-            className={`px-5 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-              statTab === t.id
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {allowedTabs === null ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="px-5 py-2.5">
+              <div className="animate-pulse bg-gray-200 rounded h-4 w-16" />
+            </div>
+          ))
+        ) : allowedTabs.length === 0 ? (
+          <p className="px-5 py-2.5 text-sm text-gray-400 italic">No hay secciones habilitadas para esta empresa.</p>
+        ) : (
+          ALL_TABS.filter(t => allowedTabs.includes(t.id)).map(t => (
+            <button
+              key={t.id}
+              onClick={() => setStatTab(t.id)}
+              className={`px-5 py-2.5 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                statTab === t.id
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))
+        )}
       </div>
 
       {/* ── Content ── */}
