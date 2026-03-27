@@ -12,6 +12,11 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 
+
+
+
+
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Periodo {
@@ -1149,6 +1154,8 @@ export default function StatsPage() {
               <PuntoVentaWidget slug={slug} query={query} />
             </section>
             <BodegasWidget slug={slug} query={query} />
+            <CrecimientoVentasMensualWidget slug={slug} />
+            <MargenBrutoMensualWidget slug={slug} />
           </>
         )}
 
@@ -1161,6 +1168,7 @@ export default function StatsPage() {
 
         {statTab === "clientes" && (
           <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <ClientesPorMesWidget slug={slug} periodos={periodos} />
             <TopClientesWidget slug={slug} query={query} />
             <FrecuenciaClientesWidget slug={slug} query={query} />
           </section>
@@ -1174,5 +1182,381 @@ export default function StatsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+// ─── ClientesPorMesWidget ──────────────────────────────────────────────────
+
+interface ClientePorMes {
+  ano: number;
+  mes: number;
+  clientes_nuevos: number;
+  clientes_acumulados: number;
+}
+
+function getLast12MonthsRange(): { fechaInicio: string; fechaFin: string } {
+  const end = new Date();
+  const start = new Date(end.getFullYear(), end.getMonth() - 11, 1);
+  const fechaInicio = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
+  const fechaFin = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-01`;
+  return { fechaInicio, fechaFin };
+}
+
+function ClientesPorMesWidget({ slug, periodos }: { slug: string; periodos: Periodo[] }) {
+  const [modo, setModo] = useState<"ultimos12" | "ano">("ultimos12");
+  const [ano, setAno] = useState<number | null>(null);
+
+  const years = Array.from(new Set(periodos.map(p => p.ANO_DEL_PERIODO))).sort((a, b) => b - a);
+
+  let fechaInicio = "";
+  let fechaFin = "";
+  if (modo === "ultimos12") {
+    const r = getLast12MonthsRange();
+    fechaInicio = r.fechaInicio;
+    fechaFin = r.fechaFin;
+  } else if (ano) {
+    fechaInicio = `${ano}-01-01`;
+    fechaFin = `${ano}-12-31`;
+  }
+
+  const url = fechaInicio && fechaFin
+    ? `/api/stats/${slug}/clientes-por-mes?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
+    : null;
+  const { data: raw, loading, ms, error } = useStatWidget<ClientePorMes[]>(url);
+  const rows = toArr<ClientePorMes>(raw);
+
+  return (
+    <WidgetCard
+      title="Clientes por mes"
+      loading={loading}
+      ms={ms}
+      error={error}
+      info="Nuevos clientes y acumulados por mes. Por defecto muestra los últimos 12 meses, o puedes ver por año."
+      controls={
+        <div className="flex items-center gap-2">
+          <button
+            className={`px-2 py-1 rounded text-xs font-semibold ${modo === "ultimos12" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            onClick={() => setModo("ultimos12")}
+          >Últimos 12 meses</button>
+          <select
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+            value={ano ?? ""}
+            onChange={e => { setModo("ano"); setAno(Number(e.target.value)); }}
+          >
+            <option value="">Año...</option>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      }
+    >
+      {rows.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <ComposedChart data={rows} margin={{ top: 8, right: 40, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey={(d: ClientePorMes) => `${MESES[d.mes - 1]?.slice(0, 3) ?? d.mes}/${d.ano}`} tick={{ fontSize: 11 }} />
+            <YAxis yAxisId="nuevos" tick={{ fontSize: 11 }} allowDecimals={false} />
+            <YAxis yAxisId="acumulados" orientation="right" tick={{ fontSize: 11 }} allowDecimals={false} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+            <Bar yAxisId="nuevos" dataKey="clientes_nuevos" fill="#3b82f6" name="Nuevos" barSize={18} radius={[3, 3, 0, 0]} />
+            <Area yAxisId="acumulados" type="monotone" dataKey="clientes_acumulados" fill="#d1fae5" stroke="#10b981" strokeWidth={2} name="Acumulados" dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      ) : <EmptyOrSkeleton loading={loading} height="h-52" />}
+    </WidgetCard>
+  );
+}
+
+// ─── CrecimientoVentasMensualWidget ───────────────────────────────────────────
+
+interface CrecimientoVentasMes {
+  ano: number;
+  mes: number;
+  cantidad_facturas: number;
+  venta_neta: number;
+  venta_neta_mes_anterior: number | null;
+  venta_acumulada_ano: number;
+  crecimiento_vs_mismo_mes_pct: number | null;
+}
+
+const CRECIMIENTO_COLORS = ["#3b82f6", "#f59e0b", "#10b981", "#8b5cf6"];
+
+function getDefaultCrecimientoRange(): { fechaInicio: string; fechaFin: string } {
+  const end = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    fechaInicio: `${end.getFullYear() - 1}-01-01`,
+    fechaFin: `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`,
+  };
+}
+
+function CrecimientoVentasMensualWidget({ slug }: { slug: string }) {
+  const defaults = useMemo(() => getDefaultCrecimientoRange(), []);
+  const [fechaInicio, setFechaInicio] = useState(defaults.fechaInicio);
+  const [fechaFin, setFechaFin] = useState(defaults.fechaFin);
+
+  const url = `/api/stats/${slug}/crecimiento-ventas-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+  const { data: raw, loading, ms, error } = useStatWidget<CrecimientoVentasMes[]>(url);
+  const rows = toArr<CrecimientoVentasMes>(raw);
+
+  const years = useMemo(
+    () => Array.from(new Set(rows.map(r => r.ano))).sort((a, b) => a - b),
+    [rows]
+  );
+
+  // Pivot: { mes, [año]: venta_neta } para barras agrupadas
+  const barData = useMemo(() => {
+    const byMes = new Map<number, Record<string, number>>();
+    for (const r of rows) {
+      if (!byMes.has(r.mes)) byMes.set(r.mes, { mes: r.mes });
+      byMes.get(r.mes)![String(r.ano)] = r.venta_neta;
+    }
+    return Array.from(byMes.values()).sort((a, b) => (a.mes as number) - (b.mes as number));
+  }, [rows]);
+
+  // Pivot: { mes, acum_[año]: venta_acumulada_ano } para líneas de acumulado
+  const lineData = useMemo(() => {
+    const byMes = new Map<number, Record<string, number>>();
+    for (const r of rows) {
+      if (!byMes.has(r.mes)) byMes.set(r.mes, { mes: r.mes });
+      byMes.get(r.mes)![`acum_${r.ano}`] = r.venta_acumulada_ano;
+    }
+    return Array.from(byMes.values()).sort((a, b) => (a.mes as number) - (b.mes as number));
+  }, [rows]);
+
+  return (
+    <WidgetCard
+      title="Crecimiento mensual de ventas"
+      loading={loading}
+      ms={ms}
+      error={error}
+      info="Comparación de ventas netas por mes entre años, acumulado anual y crecimiento vs. el mismo mes del año anterior."
+      controls={
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={e => setFechaInicio(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-gray-400 text-xs">→</span>
+          <input
+            type="date"
+            value={fechaFin}
+            onChange={e => setFechaFin(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      }
+    >
+      {rows.length > 0 ? (
+        <div className="space-y-6">
+          {/* ── Gráficos ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Barras agrupadas por mes */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Venta neta por mes</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  {years.map((y, i) => (
+                    <Bar key={y} dataKey={String(y)} name={String(y)} fill={CRECIMIENTO_COLORS[i % CRECIMIENTO_COLORS.length]} barSize={14} radius={[3, 3, 0, 0]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Líneas de acumulado anual */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Acumulado anual</p>
+              <ResponsiveContainer width="100%" height={220}>
+                <ComposedChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  {years.map((y, i) => (
+                    <Line
+                      key={y}
+                      type="monotone"
+                      dataKey={`acum_${y}`}
+                      name={String(y)}
+                      stroke={CRECIMIENTO_COLORS[i % CRECIMIENTO_COLORS.length]}
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  ))}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* ── Tabla ── */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2 pr-4 font-semibold text-gray-500">Mes</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Facturas</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Venta neta</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Mismo mes año ant.</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Acumulado año</th>
+                  <th className="text-right py-2 font-semibold text-gray-500">Crecimiento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const pct = r.crecimiento_vs_mismo_mes_pct;
+                  const pctClass = pct === null
+                    ? "text-gray-400"
+                    : pct > 0
+                    ? "text-green-600 font-semibold"
+                    : "text-red-500 font-semibold";
+                  const pctLabel = pct === null ? "N/A" : `${pct > 0 ? "+" : ""}${fmt(pct)}%`;
+                  return (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-1.5 pr-4 text-gray-700">{MESES[r.mes - 1]} {r.ano}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-600 font-mono">{fmtInt(r.cantidad_facturas)}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-800 font-mono">{fmt(r.venta_neta)}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-600 font-mono">
+                        {r.venta_neta_mes_anterior !== null ? fmt(r.venta_neta_mes_anterior) : <span className="text-gray-400">N/A</span>}
+                      </td>
+                      <td className="py-1.5 pr-4 text-right text-gray-600 font-mono">{fmt(r.venta_acumulada_ano)}</td>
+                      <td className={`py-1.5 text-right font-mono ${pctClass}`}>{pctLabel}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : <EmptyOrSkeleton loading={loading} height="h-52" />}
+    </WidgetCard>
+  );
+}
+
+// ─── MargenBrutoMensualWidget ─────────────────────────────────────────────────
+
+interface MargenBrutoMes {
+  ano: number;
+  mes: number;
+  venta_neta: number;
+  costo_mercaderia: number;
+  utilidad_bruta: number;
+  margen_bruto_pct: number;
+}
+
+function MargenBrutoMensualWidget({ slug }: { slug: string }) {
+  const defaults = useMemo(() => getDefaultCrecimientoRange(), []);
+  const [fechaInicio, setFechaInicio] = useState(defaults.fechaInicio);
+  const [fechaFin, setFechaFin] = useState(defaults.fechaFin);
+
+  const url = `/api/stats/${slug}/margen-bruto-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+  const { data: raw, loading, ms, error } = useStatWidget<MargenBrutoMes[]>(url);
+  const rows = toArr<MargenBrutoMes>(raw);
+
+  const years = useMemo(
+    () => Array.from(new Set(rows.map(r => r.ano))).sort((a, b) => a - b),
+    [rows]
+  );
+
+  // Pivot: { mes, [año]_util: utilidad_bruta, [año]_pct: margen_bruto_pct }
+  const chartData = useMemo(() => {
+    const byMes = new Map<number, Record<string, number>>();
+    for (const r of rows) {
+      if (!byMes.has(r.mes)) byMes.set(r.mes, { mes: r.mes });
+      const entry = byMes.get(r.mes)!;
+      entry[`${r.ano}_util`] = r.utilidad_bruta;
+      entry[`${r.ano}_pct`] = r.margen_bruto_pct;
+    }
+    return Array.from(byMes.values()).sort((a, b) => (a.mes as number) - (b.mes as number));
+  }, [rows]);
+
+  return (
+    <WidgetCard
+      title="Margen bruto mensual"
+      loading={loading}
+      ms={ms}
+      error={error}
+      info="Margen BRUTO: solo considera el costo de mercadería vendida. No incluye gastos operativos, administrativos ni financieros."
+      controls={
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={fechaInicio}
+            onChange={e => setFechaInicio(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-gray-400 text-xs">→</span>
+          <input
+            type="date"
+            value={fechaFin}
+            onChange={e => setFechaFin(e.target.value)}
+            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      }
+    >
+      {rows.length > 0 ? (
+        <div className="space-y-6">
+          {/* ── Gráfico combinado ── */}
+          <ResponsiveContainer width="100%" height={260}>
+            <ComposedChart data={chartData} margin={{ top: 4, right: 48, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
+              <YAxis yAxisId="util" tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+              <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[0, 100]} width={40} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+              {years.map((y, i) => (
+                <Bar key={`${y}_util`} yAxisId="util" dataKey={`${y}_util`} name={`Utilidad ${y}`} fill={CRECIMIENTO_COLORS[i % CRECIMIENTO_COLORS.length]} barSize={14} radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+              ))}
+              {years.map((y, i) => (
+                <Line key={`${y}_pct`} yAxisId="pct" type="monotone" dataKey={`${y}_pct`} name={`Margen% ${y}`} stroke={CRECIMIENTO_COLORS[i % CRECIMIENTO_COLORS.length]} strokeWidth={2} strokeDasharray="4 2" dot={false} />
+              ))}
+            </ComposedChart>
+          </ResponsiveContainer>
+
+          {/* ── Tabla ── */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left py-2 pr-4 font-semibold text-gray-500">Mes</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Venta neta</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Costo mercadería</th>
+                  <th className="text-right py-2 pr-4 font-semibold text-gray-500">Utilidad bruta</th>
+                  <th className="text-right py-2 font-semibold text-gray-500">Margen bruto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const pct = r.margen_bruto_pct;
+                  const pctClass = pct >= 30
+                    ? "text-green-600 font-semibold"
+                    : pct >= 20
+                    ? "text-yellow-600 font-semibold"
+                    : "text-red-500 font-semibold";
+                  return (
+                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50">
+                      <td className="py-1.5 pr-4 text-gray-700">{MESES[r.mes - 1]} {r.ano}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-800 font-mono">{fmt(r.venta_neta)}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-600 font-mono">{fmt(r.costo_mercaderia)}</td>
+                      <td className="py-1.5 pr-4 text-right text-gray-800 font-mono">{fmt(r.utilidad_bruta)}</td>
+                      <td className={`py-1.5 text-right font-mono ${pctClass}`}>{fmt(pct)}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : <EmptyOrSkeleton loading={loading} height="h-52" />}
+    </WidgetCard>
   );
 }
