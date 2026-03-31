@@ -19,6 +19,15 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface MonedaInfo {
+  codigo_financiero: string;
+  nombre_financiero: string;
+  abreviatura_financiero: string;
+  codigo_reexpresion: string;
+  nombre_reexpresion: string;
+  abreviatura_reexpresion: string;
+}
+
 interface Periodo {
   ANO_DEL_PERIODO: number;
   NUMERO_DEL_PERIODO: number;
@@ -312,7 +321,7 @@ function KpiCard({
 
 // ─── Widgets ──────────────────────────────────────────────────────────────────
 
-function ResumenWidget({ slug, query }: { slug: string; query: string | null }) {
+function ResumenWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/resumen-financiero?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<ResumenFinanciero>(url);
 
@@ -335,15 +344,15 @@ function ResumenWidget({ slug, query }: { slug: string; query: string | null }) 
         <div className="space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <KpiCard label="Total facturas"  number={fmtInt(raw.TOTAL_FACTURAS)}              bar="bg-blue-500"    iconBg="bg-blue-50"    iconFg="text-blue-500"    numColor="text-blue-700"    icon={iconFacturas} />
-            <KpiCard label="Ventas brutas"   number={fmt(raw.TOTAL_VENTAS)}    prefix="L"    bar="bg-green-500"   iconBg="bg-green-50"   iconFg="text-green-600"   numColor="text-green-700"   icon={iconVentas} />
-            <KpiCard label="Ventas netas"    number={fmt(raw.TOTAL_VENTAS_NETAS)} prefix="L" bar="bg-teal-500"    iconBg="bg-teal-50"    iconFg="text-teal-600"    numColor="text-teal-700"    icon={iconNet} />
-            <KpiCard label="Descuentos"      number={fmt(raw.TOTAL_DESCUENTO)} prefix="L"    bar="bg-purple-500"  iconBg="bg-purple-50"  iconFg="text-purple-500"  numColor="text-purple-600"  icon={iconDiscount} />
+            <KpiCard label="Ventas brutas"   number={fmt(raw.TOTAL_VENTAS)}    prefix={simbolo}    bar="bg-green-500"   iconBg="bg-green-50"   iconFg="text-green-600"   numColor="text-green-700"   icon={iconVentas} />
+            <KpiCard label="Ventas netas"    number={fmt(raw.TOTAL_VENTAS_NETAS)} prefix={simbolo} bar="bg-teal-500"    iconBg="bg-teal-50"    iconFg="text-teal-600"    numColor="text-teal-700"    icon={iconNet} />
+            <KpiCard label="Descuentos"      number={fmt(raw.TOTAL_DESCUENTO)} prefix={simbolo}    bar="bg-purple-500"  iconBg="bg-purple-50"  iconFg="text-purple-500"  numColor="text-purple-600"  icon={iconDiscount} />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <KpiCard label="Impuestos (ISV)" number={fmt(raw.TOTAL_IMPUESTO)}  prefix="L"   bar="bg-orange-500"  iconBg="bg-orange-50"  iconFg="text-orange-500"  numColor="text-orange-600"  icon={iconTag} />
-            <KpiCard label="Factura promedio" number={fmt(raw.TICKET_PROMEDIO)} prefix="L"  bar="bg-sky-500"     iconBg="bg-sky-50"     iconFg="text-sky-500"     numColor="text-sky-700"     icon={iconBar} />
-            <KpiCard label="Factura máxima"  number={fmt(raw.VENTA_MAXIMA)}    prefix="L"   bar="bg-emerald-500" iconBg="bg-emerald-50" iconFg="text-emerald-600" numColor="text-emerald-700" icon={iconUp} />
-            <KpiCard label="Factura mínima"  number={fmt(raw.VENTA_MINIMA)}    prefix="L"   bar="bg-gray-400"    iconBg="bg-gray-100"   iconFg="text-gray-500"   numColor="text-gray-600"    icon={iconDown} />
+            <KpiCard label="Impuestos (ISV)" number={fmt(raw.TOTAL_IMPUESTO)}  prefix={simbolo}   bar="bg-orange-500"  iconBg="bg-orange-50"  iconFg="text-orange-500"  numColor="text-orange-600"  icon={iconTag} />
+            <KpiCard label="Factura promedio" number={fmt(raw.TICKET_PROMEDIO)} prefix={simbolo}  bar="bg-sky-500"     iconBg="bg-sky-50"     iconFg="text-sky-500"     numColor="text-sky-700"     icon={iconBar} />
+            <KpiCard label="Factura máxima"  number={fmt(raw.VENTA_MAXIMA)}    prefix={simbolo}   bar="bg-emerald-500" iconBg="bg-emerald-50" iconFg="text-emerald-600" numColor="text-emerald-700" icon={iconUp} />
+            <KpiCard label="Factura mínima"  number={fmt(raw.VENTA_MINIMA)}    prefix={simbolo}   bar="bg-gray-400"    iconBg="bg-gray-100"   iconFg="text-gray-500"   numColor="text-gray-600"    icon={iconDown} />
           </div>
         </div>
       ) : (
@@ -360,7 +369,7 @@ function ResumenWidget({ slug, query }: { slug: string; query: string | null }) 
   );
 }
 
-function TendenciaWidget({ slug, query }: { slug: string; query: string | null }) {
+function TendenciaWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/tendencia-diaria?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
   const chartData = toArr<TendenciaDia>(raw).map(d => ({
@@ -381,7 +390,7 @@ function TendenciaWidget({ slug, query }: { slug: string; query: string | null }
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `L${(v / 1000).toFixed(0)}k`} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${simbolo}${(v / 1000).toFixed(0)}k`} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Area type="monotone" dataKey="Ventas" stroke="#3b82f6" fill="url(#gradVentas)" strokeWidth={2} dot={{ r: 3 }} />
@@ -392,7 +401,7 @@ function TendenciaWidget({ slug, query }: { slug: string; query: string | null }
   );
 }
 
-function VendedoresWidget({ slug, query }: { slug: string; query: string | null }) {
+function VendedoresWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/ventas-por-vendedor?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
   const rows = toArr<VentaVendedor>(raw);
@@ -426,8 +435,8 @@ function VendedoresWidget({ slug, query }: { slug: string; query: string | null 
                         <div className="h-full rounded-full bg-blue-500 transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </td>
-                    <td className="py-2 text-right font-mono font-semibold text-blue-700 whitespace-nowrap pr-3">L {fmt(v.TOTAL_VENTAS)}</td>
-                    <td className="py-2 text-right font-mono text-gray-500 whitespace-nowrap">L {fmt(v.TICKET_PROMEDIO)}</td>
+                    <td className="py-2 text-right font-mono font-semibold text-blue-700 whitespace-nowrap pr-3">{simbolo} {fmt(v.TOTAL_VENTAS)}</td>
+                    <td className="py-2 text-right font-mono text-gray-500 whitespace-nowrap">{simbolo} {fmt(v.TICKET_PROMEDIO)}</td>
                   </tr>
                 );
               })}
@@ -439,7 +448,7 @@ function VendedoresWidget({ slug, query }: { slug: string; query: string | null 
   );
 }
 
-function BodegasWidget({ slug, query }: { slug: string; query: string | null }) {
+function BodegasWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/ventas-por-bodega?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
   const rows = toArr<VentaBodega>(raw);
@@ -472,7 +481,7 @@ function BodegasWidget({ slug, query }: { slug: string; query: string | null }) 
                         <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </td>
-                    <td className="py-2 text-right font-mono text-gray-700 whitespace-nowrap pr-3">L {fmt(b.TOTAL_VENTAS)}</td>
+                    <td className="py-2 text-right font-mono text-gray-700 whitespace-nowrap pr-3">{simbolo} {fmt(b.TOTAL_VENTAS)}</td>
                     <td className="py-2 text-right font-mono text-gray-400 whitespace-nowrap">{sharePct.toFixed(1)}%</td>
                   </tr>
                 );
@@ -485,7 +494,7 @@ function BodegasWidget({ slug, query }: { slug: string; query: string | null }) 
   );
 }
 
-function PuntoVentaWidget({ slug, query }: { slug: string; query: string | null }) {
+function PuntoVentaWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/ventas-por-punto-de-venta?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
   const chartData = toArr<VentaPV>(raw).map((pv, i) => ({
@@ -505,7 +514,7 @@ function PuntoVentaWidget({ slug, query }: { slug: string; query: string | null 
             </Pie>
             <Tooltip
               formatter={(v, _name, props) =>
-                [`L ${fmt(Number(v))}`, (props.payload as { fullName?: string } | undefined)?.fullName ?? String(_name)]
+                [`${simbolo} ${fmt(Number(v))}`, (props.payload as { fullName?: string } | undefined)?.fullName ?? String(_name)]
               }
             />
             <Legend
@@ -701,7 +710,7 @@ function StockBajoWidget({ slug, ano }: { slug: string; ano: number | null }) {
   );
 }
 
-function TopClientesWidget({ slug, query }: { slug: string; query: string | null }) {
+function TopClientesWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/top-clientes?${query}&limit=5` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
   const rows = toArr<TopCliente>(raw);
@@ -739,8 +748,8 @@ function TopClientesWidget({ slug, query }: { slug: string; query: string | null
                         <div className="h-full rounded-full bg-indigo-500 transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </td>
-                    <td className="py-2 text-right font-mono font-semibold text-indigo-700 whitespace-nowrap pr-3">L {fmt(c.TOTAL_COMPRADO)}</td>
-                    <td className="py-2 text-right font-mono text-gray-500 whitespace-nowrap">L {fmt(c.TICKET_PROMEDIO)}</td>
+                    <td className="py-2 text-right font-mono font-semibold text-indigo-700 whitespace-nowrap pr-3">{simbolo} {fmt(c.TOTAL_COMPRADO)}</td>
+                    <td className="py-2 text-right font-mono text-gray-500 whitespace-nowrap">{simbolo} {fmt(c.TICKET_PROMEDIO)}</td>
                   </tr>
                 );
               })}
@@ -752,7 +761,7 @@ function TopClientesWidget({ slug, query }: { slug: string; query: string | null
   );
 }
 
-function FrecuenciaClientesWidget({ slug, query }: { slug: string; query: string | null }) {
+function FrecuenciaClientesWidget({ slug, query, simbolo }: { slug: string; query: string | null; simbolo: string }) {
   const url = query !== null ? `/api/stats/${slug}/facturas-por-cliente?${query}` : null;
   const { data: raw, loading, ms, error } = useStatWidget<unknown>(url);
 
@@ -815,7 +824,7 @@ function FrecuenciaClientesWidget({ slug, query }: { slug: string; query: string
                   <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="py-2 text-gray-700 pr-3 truncate max-w-0" title={c.CLIENTE}>
                       <span className="block truncate">{c.CLIENTE}</span>
-                      <span className="text-gray-400">L {fmt(c.TOTAL_COMPRADO)}</span>
+                      <span className="text-gray-400">{simbolo} {fmt(c.TOTAL_COMPRADO)}</span>
                     </td>
                     <td className="py-2 pr-3">
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -944,15 +953,24 @@ export default function StatsPage() {
   ];
   const [allowedTabs, setAllowedTabs] = useState<StatTab[] | null>(null);
   const [statTab, setStatTab] = useState<StatTab>("resumen");
+  const [moneda, setMoneda] = useState<"financiero" | "reexpresion">("financiero");
+  const [monedaInfo, setMonedaInfo] = useState<MonedaInfo | null>(null);
+
+  const simbolo = monedaInfo
+    ? moneda === "financiero"
+      ? monedaInfo.codigo_financiero
+      : monedaInfo.codigo_reexpresion
+    : "";
 
   const query: string | null =
     filterMode === "periodo"
       ? selectedPeriodo
-        ? `ano=${selectedPeriodo.ANO_DEL_PERIODO}&periodo=${selectedPeriodo.NUMERO_DEL_PERIODO}`
+        ? `ano=${selectedPeriodo.ANO_DEL_PERIODO}&periodo=${selectedPeriodo.NUMERO_DEL_PERIODO}&moneda=${moneda}`
         : null
       : [
           fechaDesde && `fechaDesde=${fechaDesde}`,
           fechaHasta && `fechaHasta=${fechaHasta}`,
+          `moneda=${moneda}`,
         ]
           .filter(Boolean)
           .join("&") || "";
@@ -981,7 +999,8 @@ export default function StatsPage() {
       fetch(`/api/stats/${slug}/periodos-contables`).then(r => r.json()),
       fetch(`/api/stats/${slug}/articulos/filtros`).then(r => r.json()),
       fetch(`/api/stats/${slug}/tabs`).then(r => r.ok ? r.json() : null),
-    ]).then(([periodoData, filtrosData, tabsData]) => {
+      fetch(`/api/stats/${slug}/monedas`).then(r => r.ok ? r.json() : null),
+    ]).then(([periodoData, filtrosData, tabsData, monedasData]) => {
       const arr: Periodo[] = Array.isArray(periodoData) ? periodoData : periodoData.value ?? [];
       setPeriodos(arr);
       if (arr.length > 0) setSelectedPeriodo(arr[0]);
@@ -990,6 +1009,8 @@ export default function StatsPage() {
       const tabs: StatTab[] = Array.isArray(tabsData) ? tabsData as StatTab[] : ["resumen", "ventas", "articulos", "clientes", "inventario"];
       setAllowedTabs(tabs);
       if (tabs.length > 0 && !tabs.includes("resumen")) setStatTab(tabs[0]);
+
+      if (monedasData) setMonedaInfo(monedasData as MonedaInfo);
     }).catch(() => {
       setAllowedTabs(["resumen", "ventas", "articulos", "clientes", "inventario"]);
     });
@@ -1109,6 +1130,23 @@ export default function StatsPage() {
             />
           </div>
         )}
+
+        {monedaInfo && (
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm ml-auto">
+            <button
+              onClick={() => setMoneda("financiero")}
+              className={`px-3 py-1.5 transition-colors ${moneda === "financiero" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+            >
+              {monedaInfo.abreviatura_financiero} {monedaInfo.nombre_financiero}
+            </button>
+            <button
+              onClick={() => setMoneda("reexpresion")}
+              className={`px-3 py-1.5 border-l border-gray-300 transition-colors ${moneda === "reexpresion" ? "bg-indigo-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+            >
+              {monedaInfo.abreviatura_reexpresion} {monedaInfo.nombre_reexpresion}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Stat Tabs ── */}
@@ -1155,20 +1193,20 @@ export default function StatsPage() {
         )}
         {statTab === "resumen" && allowedTabs !== null && allowedTabs.length > 0 && (
           <>
-            <ResumenWidget slug={slug} query={query} />
-            <TendenciaWidget slug={slug} query={query} />
+            <ResumenWidget slug={slug} query={query} simbolo={simbolo} />
+            <TendenciaWidget slug={slug} query={query} simbolo={simbolo} />
           </>
         )}
 
         {statTab === "ventas" && (
           <>
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <VendedoresWidget slug={slug} query={query} />
-              <PuntoVentaWidget slug={slug} query={query} />
+              <VendedoresWidget slug={slug} query={query} simbolo={simbolo} />
+              <PuntoVentaWidget slug={slug} query={query} simbolo={simbolo} />
             </section>
-            <BodegasWidget slug={slug} query={query} />
-            <CrecimientoVentasMensualWidget slug={slug} />
-            <MargenBrutoMensualWidget slug={slug} />
+            <BodegasWidget slug={slug} query={query} simbolo={simbolo} />
+            <CrecimientoVentasMensualWidget slug={slug} moneda={moneda} simbolo={simbolo} />
+            <MargenBrutoMensualWidget slug={slug} moneda={moneda} simbolo={simbolo} />
           </>
         )}
 
@@ -1182,8 +1220,8 @@ export default function StatsPage() {
         {statTab === "clientes" && (
           <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <ClientesPorMesWidget slug={slug} periodos={periodos} />
-            <TopClientesWidget slug={slug} query={query} />
-            <FrecuenciaClientesWidget slug={slug} query={query} />
+            <TopClientesWidget slug={slug} query={query} simbolo={simbolo} />
+            <FrecuenciaClientesWidget slug={slug} query={query} simbolo={simbolo} />
           </section>
         )}
 
@@ -1303,12 +1341,12 @@ function getDefaultCrecimientoRange(): { fechaInicio: string; fechaFin: string }
   };
 }
 
-function CrecimientoVentasMensualWidget({ slug }: { slug: string }) {
+function CrecimientoVentasMensualWidget({ slug, moneda, simbolo }: { slug: string; moneda: "financiero" | "reexpresion"; simbolo: string }) {
   const defaults = useMemo(() => getDefaultCrecimientoRange(), []);
   const [fechaInicio, setFechaInicio] = useState(defaults.fechaInicio);
   const [fechaFin, setFechaFin] = useState(defaults.fechaFin);
 
-  const url = `/api/stats/${slug}/crecimiento-ventas-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+  const url = `/api/stats/${slug}/crecimiento-ventas-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&moneda=${moneda}`;
   const { data: raw, loading, ms, error } = useStatWidget<CrecimientoVentasMes[]>(url);
   const rows = toArr<CrecimientoVentasMes>(raw);
 
@@ -1373,7 +1411,7 @@ function CrecimientoVentasMensualWidget({ slug }: { slug: string }) {
                 <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${simbolo}${fmt(v)}`} width={72} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                   {years.map((y, i) => (
@@ -1390,7 +1428,7 @@ function CrecimientoVentasMensualWidget({ slug }: { slug: string }) {
                 <ComposedChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${simbolo}${fmt(v)}`} width={72} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                   {years.map((y, i) => (
@@ -1464,12 +1502,12 @@ interface MargenBrutoMes {
   margen_bruto_pct: number;
 }
 
-function MargenBrutoMensualWidget({ slug }: { slug: string }) {
+function MargenBrutoMensualWidget({ slug, moneda, simbolo }: { slug: string; moneda: "financiero" | "reexpresion"; simbolo: string }) {
   const defaults = useMemo(() => getDefaultCrecimientoRange(), []);
   const [fechaInicio, setFechaInicio] = useState(defaults.fechaInicio);
   const [fechaFin, setFechaFin] = useState(defaults.fechaFin);
 
-  const url = `/api/stats/${slug}/margen-bruto-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`;
+  const url = `/api/stats/${slug}/margen-bruto-mensual?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&moneda=${moneda}`;
   const { data: raw, loading, ms, error } = useStatWidget<MargenBrutoMes[]>(url);
   const rows = toArr<MargenBrutoMes>(raw);
 
@@ -1522,7 +1560,7 @@ function MargenBrutoMensualWidget({ slug }: { slug: string }) {
             <ComposedChart data={chartData} margin={{ top: 4, right: 48, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey={(d: Record<string, number>) => MESES[d.mes - 1]?.slice(0, 3) ?? d.mes} tick={{ fontSize: 10 }} />
-              <YAxis yAxisId="util" tick={{ fontSize: 10 }} tickFormatter={v => fmt(v)} width={72} />
+              <YAxis yAxisId="util" tick={{ fontSize: 10 }} tickFormatter={v => `${simbolo}${fmt(v)}`} width={72} />
               <YAxis yAxisId="pct" orientation="right" tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[0, 100]} width={40} />
               <Tooltip content={<CustomTooltip />} />
               <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
