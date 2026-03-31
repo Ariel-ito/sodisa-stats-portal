@@ -573,7 +573,7 @@ function MasVendidosWidget({ slug, query }: { slug: string; query: string | null
       <span className="text-xs text-gray-400">Top:</span>
       {[5, 10, 20].map(n => (
         <button key={n} onClick={() => setTopN(n)}
-          className={`w-7 h-6 rounded text-xs font-semibold transition-colors ${topN === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          className={`w-8 h-7 rounded text-xs font-semibold transition-colors ${topN === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
           {n}
         </button>
       ))}
@@ -610,7 +610,7 @@ function RotacionWidget({ slug, query }: { slug: string; query: string | null })
       <span className="text-xs text-gray-400">Top:</span>
       {[5, 10, 20].map(n => (
         <button key={n} onClick={() => setTopN(n)}
-          className={`w-7 h-6 rounded text-xs font-semibold transition-colors ${topN === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+          className={`w-8 h-7 rounded text-xs font-semibold transition-colors ${topN === n ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
           {n}
         </button>
       ))}
@@ -623,7 +623,7 @@ function RotacionWidget({ slug, query }: { slug: string; query: string | null })
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 11 }} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={185} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="Frecuencia" fill="#ec4899" radius={[0, 4, 4, 0]} />
           </BarChart>
@@ -684,8 +684,8 @@ function StockBajoWidget({ slug, ano }: { slug: string; ano: number | null }) {
             {items.map((s, i) => (
               <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="py-1.5 font-mono text-gray-500">{s.CODIGO_DE_ARTICULO}</td>
-                <td className="py-1.5 text-gray-700 max-w-[160px] truncate">{s.NOMBRE_DEL_ARTICULO}</td>
-                <td className="py-1.5 text-gray-500 max-w-[120px] truncate">{s.NOMBRE_DE_BODEGA}</td>
+                <td className="py-1.5 text-gray-700 truncate max-w-0 w-2/5">{s.NOMBRE_DEL_ARTICULO}</td>
+                <td className="py-1.5 text-gray-500 truncate max-w-0 w-1/3">{s.NOMBRE_DE_BODEGA}</td>
                 <td className={`py-1.5 text-right font-mono font-semibold ${s.SALDO_ACTUAL <= 0 ? "text-red-600" : s.SALDO_ACTUAL <= 2 ? "text-orange-500" : "text-yellow-600"}`}>
                   {s.SALDO_ACTUAL}
                 </td>
@@ -898,8 +898,8 @@ function SinMovimientoWidget({ slug, query, tiposInventario }: { slug: string; q
             {items.map((s, i) => (
               <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="py-1.5 font-mono text-gray-500">{s.CODIGO_DE_ARTICULO}</td>
-                <td className="py-1.5 text-gray-700 max-w-[160px] truncate">{s.NOMBRE_DEL_ARTICULO}</td>
-                <td className="py-1.5 text-gray-500 max-w-[120px] truncate">{s.NOMBRE_DE_BODEGA}</td>
+                <td className="py-1.5 text-gray-700 truncate max-w-0 w-2/5">{s.NOMBRE_DEL_ARTICULO}</td>
+                <td className="py-1.5 text-gray-500 truncate max-w-0 w-1/3">{s.NOMBRE_DE_BODEGA}</td>
                 <td className="py-1.5 text-right font-mono text-gray-600">{fmtInt(s.SALDO_ACTUAL)}</td>
               </tr>
             ))}
@@ -1012,7 +1012,7 @@ export default function StatsPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ── Header ── */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-3 flex-wrap">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center gap-3 flex-wrap">
         {/* Brand */}
         <div className="flex items-center gap-2 mr-2">
           <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -1055,7 +1055,7 @@ export default function StatsPage() {
       </header>
 
       {/* ── Global filter bar ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap items-center gap-5">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
         <div className="flex rounded-lg border border-gray-300 overflow-hidden text-sm">
           <button
             onClick={() => setFilterMode("periodo")}
@@ -1078,7 +1078,7 @@ export default function StatsPage() {
               const found = periodos.find(p => `${p.ANO_DEL_PERIODO}-${p.NUMERO_DEL_PERIODO}` === e.target.value);
               if (found) setSelectedPeriodo(found);
             }}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white min-w-[180px]"
+            className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-auto"
           >
             {years.map(year => (
               <optgroup key={year} label={String(year)}>
@@ -1093,26 +1093,26 @@ export default function StatsPage() {
         )}
 
         {filterMode === "custom" && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               value={fechaDesde}
               onChange={(e) => setFechaDesde(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-auto"
             />
-            <span className="text-gray-400 text-sm">→</span>
+            <span className="text-gray-400 text-sm hidden sm:inline">→</span>
             <input
               type="date"
               value={fechaHasta}
               onChange={(e) => setFechaHasta(e.target.value)}
-              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="text-sm border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full sm:w-auto"
             />
           </div>
         )}
       </div>
 
       {/* ── Stat Tabs ── */}
-      <div className="bg-white border-b border-gray-200 px-6 flex gap-0 overflow-x-auto">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 flex gap-0 overflow-x-auto">
         {allowedTabs === null ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="px-5 py-2.5">
@@ -1139,8 +1139,21 @@ export default function StatsPage() {
       </div>
 
       {/* ── Content ── */}
-      <main className="p-6 space-y-6">
-        {statTab === "resumen" && (
+      <main className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {allowedTabs !== null && allowedTabs.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-700 mb-1">Sin acceso a estadísticas</h3>
+            <p className="text-sm text-gray-400 max-w-sm">
+              Esta empresa no tiene secciones habilitadas. Contacte a soporte para activar el acceso.
+            </p>
+          </div>
+        )}
+        {statTab === "resumen" && allowedTabs !== null && allowedTabs.length > 0 && (
           <>
             <ResumenWidget slug={slug} query={query} />
             <TendenciaWidget slug={slug} query={query} />
@@ -1332,7 +1345,7 @@ function CrecimientoVentasMensualWidget({ slug }: { slug: string }) {
       error={error}
       info="Comparación de ventas netas por mes entre años, acumulado anual y crecimiento vs. el mismo mes del año anterior."
       controls={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={fechaInicio}
@@ -1485,7 +1498,7 @@ function MargenBrutoMensualWidget({ slug }: { slug: string }) {
       error={error}
       info="Margen BRUTO: solo considera el costo de mercadería vendida. No incluye gastos operativos, administrativos ni financieros."
       controls={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={fechaInicio}
