@@ -546,7 +546,7 @@ function TreemapCell(props: {
           textAnchor="middle" dominantBaseline="middle"
           fill="rgba(255,255,255,0.95)" fontSize={Math.min(13, Math.max(9, width / 6))} fontWeight={700}
         >
-          {size}
+          {(size ?? 0).toLocaleString("es-HN")}
         </text>
       )}
     </g>
@@ -555,14 +555,15 @@ function TreemapCell(props: {
 
 function TreemapTooltip({ active, payload }: {
   active?: boolean;
-  payload?: { payload: { name: string; fullName: string; size: number } }[];
+  payload?: { payload: { name: string; fullName: string; codigo: string; size: number } }[];
 }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-2.5 text-xs">
+      <p className="text-gray-400 font-mono mb-0.5">{d.codigo}</p>
       <p className="font-semibold text-gray-700 mb-1">{d.fullName ?? d.name}</p>
-      <p className="text-purple-600 font-mono font-semibold">{d.size} unidades</p>
+      <p className="text-purple-600 font-mono font-semibold">{d.size.toLocaleString("es-HN")} unidades</p>
     </div>
   );
 }
@@ -574,6 +575,7 @@ function MasVendidosWidget({ slug, query }: { slug: string; query: string | null
   const chartData = toArr<ArticuloVendido>(raw).map((a, i) => ({
     name: shortName(a.NOMBRE_DEL_ARTICULO, 32),
     fullName: a.NOMBRE_DEL_ARTICULO,
+    codigo: a.CODIGO_DE_ARTICULO,
     size: a.CANTIDAD_TOTAL,
     fill: PIE_COLORS[i % PIE_COLORS.length],
   }));
